@@ -17,6 +17,7 @@ public class OriginalBean {
 
     // 构造方法中实例化Class
 
+
     public OriginalBean(String beanClassName, String beanFactoryName){
         this.beanClassName=beanClassName;
         this.beanFactoryName=beanFactoryName;
