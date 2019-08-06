@@ -1,5 +1,6 @@
 package com.sunpeifu.demo.ioc.context;
 
+import com.sunpeifu.demo.controller.IocController;
 import com.sunpeifu.demo.ioc.core.BeanReader;
 import com.sunpeifu.demo.ioc.annotation.MyAutowired;
 import com.sunpeifu.demo.ioc.bean.BeanWrapper;
@@ -17,7 +18,6 @@ public class ApplicationContext extends BeanFactoryContainer implements BeanFact
 
     private BeanReader reader;
 
-    private String[] configLocations;
 
     /***
      * 注册时的单列容器
@@ -28,7 +28,6 @@ public class ApplicationContext extends BeanFactoryContainer implements BeanFact
      *  构造方法,传入配置,并且刷新Ioc应用
      */
     public ApplicationContext(String... configLocations) {
-        this.configLocations = configLocations;
         refresh();
     }
 
@@ -38,7 +37,7 @@ public class ApplicationContext extends BeanFactoryContainer implements BeanFact
     public void refresh() {
         // 定位
         if (reader == null) {
-            reader = new BeanReader(configLocations[0]);
+            reader = new BeanReader();
         }
         // 加载,过去加载好的bean名称集合
         List<String> originalBeanClassNameList = reader.getOriginalBeanClassNameList();
@@ -89,7 +88,10 @@ public class ApplicationContext extends BeanFactoryContainer implements BeanFact
         while (iterator.hasNext()) {
             BeanWrapper beanWrapper = iterator.next().getValue();
             // 依赖注入
-            populateBean(beanWrapper);
+            if (beanWrapper!=null){
+                populateBean(beanWrapper);
+            }
+
         }
 
     }
@@ -97,6 +99,9 @@ public class ApplicationContext extends BeanFactoryContainer implements BeanFact
     private void populateBean(BeanWrapper beanWrapper) {
         // 从包装bean中获取原始bean
         Object orginalBean = beanWrapper.getOrginalBean();
+        if ( orginalBean == null){
+            return ;
+        }
         // 获取原始bean clazz对象
         try {
             Class<?> clazz = orginalBean.getClass();
@@ -108,9 +113,16 @@ public class ApplicationContext extends BeanFactoryContainer implements BeanFact
                 // 获取注解中Autowired的value值,即beanName,从instanceBeanMap中获取值,查看是否可以找到,找到注入设置该字段属性为对应
                 // 的class对象反射完成的实例,找不到即设置为null
                 MyAutowired myAutowired = declaredField.getAnnotation(MyAutowired.class);
-                String beanName = myAutowired.value();
-                // 设置对象成员属性值
-                declaredField.set(orginalBean,this.instanceBeanMap.get(beanName));
+                if ( null != myAutowired) {
+                    String beanName = myAutowired.value();
+                    // 设置对象成员属性值
+                    if (orginalBean instanceof IocController){
+                        BeanWrapper bw = instanceBeanMap.get(beanName);
+                        Object o = bw.getOrginalBean();
+                        declaredField.set(orginalBean,o);
+                    }
+                }
+
             }
         } catch (Exception e) {
             e.printStackTrace();
